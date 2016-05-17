@@ -111,7 +111,7 @@
                     }
                     break;
                 case 27: // quit
-                    showOverlays(true);
+                    showOverlays(true,0);
                     break;
 
                 case 13:
@@ -328,9 +328,32 @@
             ma && showConnecting();
         }
     }
-
-    function showOverlays(arg) {
-        hasOverlay = true;
+	function Cb(a) {
+        a = ~~a;
+        var b = (a % 60).toString();
+        a = (~~ (a / 60)).toString();
+        2 > b.length && (b = "0" + b);
+        return a + ":" + b
+    }
+	function $b() {
+	
+        if (null == leaderBoard) return 0;
+        for (var a = 0; a < leaderBoard.length; ++a) if (-1 != nodesOnScreen.indexOf(leaderBoard[a].id)) return a + 1;
+        return 0
+    }
+	function Qb(a, b) {
+		
+        var c = -1 != nodesOnScreen.indexOf(a.id),
+            d = -1 != nodesOnScreen.indexOf(b.id),
+            e = 30 > b.size;
+			
+        c && e && ++Oa;
+        e || !c || d || ++Ra
+		
+    }
+		
+    function showOverlays(arg,id) {
+		hasOverlay = true;
         userNickName = null;
         wjQuery("#overlays").fadeIn(arg ? 200 : 3E3);
         arg || wjQuery("#adsBottom").fadeIn(3E3)
@@ -386,7 +409,7 @@
         Cells = [];
         leaderBoard = [];
         mainCanvas = teamScores = null;
-        userScore = 0;
+		userScore = 0;
         console.log("Connecting to " + wsUrl);
         ws = new WebSocket(wsUrl);
         ws.binaryType = "arraybuffer";
@@ -537,6 +560,15 @@
 
         }
     }
+	
+	function componentToHex(c) {
+ 		var hex = c.toString(16);
+ 		return hex.length == 1 ? "0" + hex : hex;
+  	}
+ 
+ 	function rgbToHex(r, g, b) {
+ 		return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+ 	}
 
 
     function addChat(view, offset) {
@@ -566,11 +598,7 @@
         var r = view.getUint8(offset++),
             g = view.getUint8(offset++),
             b = view.getUint8(offset++),
-            color = (r << 16 | g << 8 | b).toString(16);
-        while (color.length < 6) {
-            color = '0' + color;
-        }
-        color = '#' + color;
+            color = rgbToHex(r,g,b);
         chatBoard.push({
             "name": getString(),
             "color": color,
@@ -865,16 +893,38 @@
             ctx.stroke();
             ctx.restore()
         }
+				// border -->
+		if (!kosegoster) {
+		if (showDarkTheme) {
+		ctx.strokeStyle = '#ffffff';
+		}
+		else
+		{
+		ctx.strokeStyle = '#FF0000';
+		}
+		ctx.lineWidth = 10;
+		ctx.lineCap = "round";
+		ctx.lineJoin = "round";
+		ctx.beginPath();
+		ctx.moveTo(leftPos,topPos);
+		ctx.lineTo(rightPos,topPos);
+		ctx.lineTo(rightPos,bottomPos);
+		ctx.lineTo(leftPos,bottomPos);
+		ctx.closePath();
+		ctx.stroke();
+		}
+		
         ctx.restore();
         lbCanvas && lbCanvas.width && ctx.drawImage(lbCanvas, canvasWidth - lbCanvas.width - 10, 10); // draw Leader Board
         if (chatCanvas != null) ctx.drawImage(chatCanvas, 0, canvasHeight - chatCanvas.height - 50); // draw Leader Board
 
         userScore = Math.max(userScore, calcUserScore());
-        if (0 != userScore) {
+		if (0 != userScore) {
+			kb();
             if (null == scoreText) {
                 scoreText = new UText(24, '#FFFFFF');
             }
-            scoreText.setValue('Score: ' + ~~(userScore / 100));
+            scoreText.setValue(i18n["score"]+': ' + ~~(userScore / 100));
             c = scoreText.render();
             a = c.width;
             ctx.globalAlpha = .2;
@@ -1094,6 +1144,8 @@
         userScore = 0,
         showDarkTheme = false,
         showMass = false,
+		kosegoster = false,
+		virussaydam = false,
         hideChat = false,
         smoothRender = .4,
         posX = nodeX = ~~((leftPos + rightPos) / 2),
@@ -1134,6 +1186,12 @@
     wHandle.setNames = function (arg) {
         showName = arg
     };
+	wHandle.setVirusTrans = function (arg) {
+        virussaydam = arg
+    };
+	wHandle.setKoseGoster = function (arg) {
+        kosegoster = arg
+    };
     wHandle.setDarkTheme = function (arg) {
         showDarkTheme = arg
     };
@@ -1153,7 +1211,8 @@
         } else {
             wjQuery('#chat_textbox').show();
         }
-    }
+    };
+
     wHandle.spectate = function () {
         userNickName = null;
         wHandle.isSpectating = true;
@@ -1186,6 +1245,13 @@
      }, "text");*/
     setTimeout(function () {
     }, 3E5);
+		setInterval(function () {
+			var a = $b();
+			0 != a && (++Sa, 0 == R && (R = a), R = Math.min(R, a))
+		}, 1E3);
+			setInterval(function () {
+			!0 && zg.push(calcUserScore() / 100)
+		}, 1E3 / 60);
     var T = {
         ZW: "EU-London"
     };
@@ -1418,10 +1484,14 @@
                 ctx.save();
                 this.drawTime = timestamp;
                 c = this.updatePos();
+				ctx.globalAlpha = 1;
                 this.destroyed && (ctx.globalAlpha *= 1 - c);
-                ctx.lineWidth = 10;
-                ctx.lineCap = "round";
-                ctx.lineJoin = this.isVirus ? "miter" : "round";
+				
+				if (this.color != '#0a0a0a') {
+					ctx.lineWidth = 10;
+					ctx.lineCap = "round";
+					ctx.lineJoin = this.isVirus ? "miter" : "round";
+				}
                 if (showColor) {
                     ctx.fillStyle = "#FFFFFF";
                     ctx.strokeStyle = "#AAAAAA";
@@ -1442,9 +1512,13 @@
                         var e = c % d;
                         ctx.lineTo(this.points[e].x, this.points[e].y)
                     }
+						
                 }
+					if (virussaydam && this.isVirus) { //XXX
+                            ctx.globalAlpha = 0.6;
+				}
                 ctx.closePath();
-                var skinName = this.name.toLowerCase();
+                var skinName = this.name;
                 if (skinName.indexOf('[') != -1) {
                     var clanStart = skinName.indexOf('[');
                     var clanEnd = skinName.indexOf(']');
@@ -1480,7 +1554,7 @@
                 }
                 if ((showColor || 15 < this.size) && !b) {
                     ctx.strokeStyle = '#000000';
-                    ctx.globalAlpha *= .1;
+                    
                     ctx.stroke();
                 }
                 ctx.globalAlpha = 1;
